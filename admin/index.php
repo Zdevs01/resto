@@ -1,171 +1,448 @@
 <?php 
-	session_start();
-	$pageTitle = 'Admin Login';
+session_start();
+include('../config/constants.php'); 
 
-	if(isset($_SESSION['username_restaurant_qRewacvAqzA']) && isset($_SESSION['password_restaurant_qRewacvAqzA']))
-	{
-		header('Location: dashboard.php');
-	}
+// Vérifier si l'utilisateur est connecté
+if(!isset($_SESSION['user-admin'])) {
+    header('location: login.php');
+    exit();
+}
 ?>
 
-<?php include 'connect.php'; ?>
-<?php include 'Includes/functions/functions.php'; ?>
-<?php include 'Includes/templates/header.php'; ?>
+<?php 
 
-<!-- STYLES CSS -->
-<style>
-    /* Arrière-plan animé */
-    body {
-        background: linear-gradient(45deg, #ff6600, #ffcc00);
-        background-size: 400% 400%;
-        animation: gradientBG 10s ease infinite;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        font-family: 'Poppins', sans-serif;
-    }
+//Stats
 
-    @keyframes gradientBG {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
+$sales_by_hour = "SELECT HOUR(pay_time) as hname,
+					sum(amount) as total_sales
+					FROM aamarpay
+					GROUP BY HOUR(pay_time)";
+					 
 
-    .login-container {
-        background: rgba(255, 255, 255, 0.9);
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-        animation: fadeIn 1s ease-in-out;
-    }
+$res_sales_by_hour = mysqli_query($conn, $sales_by_hour);
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+$most_sold_items = "SELECT sum(Quantity) as total_qty,
+							Item_Name as item_name
+							FROM online_orders_new
+							GROUP BY Item_Name
+							";
+$res_most_sold_items = mysqli_query($conn, $most_sold_items);
 
-    .login-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #333;
-        margin-bottom: 20px;
-    }
+//Orders
 
-    .form-input {
-        position: relative;
-        margin-bottom: 20px;
-    }
+$ei_order_notif = "SELECT order_status from tbl_eipay
+					WHERE order_status='Pending' OR order_status='Processing'";
 
-    .form-input input {
-        width: 100%;
-        padding: 12px 40px;
-        border-radius: 10px;
-        border: 2px solid #ddd;
-        outline: none;
-        transition: all 0.3s ease-in-out;
-    }
+$res_ei_order_notif = mysqli_query($conn, $ei_order_notif);
 
-    .form-input input:focus {
-        border-color: #ff6600;
-        box-shadow: 0 0 8px rgba(255, 102, 0, 0.5);
-    }
+$row_ei_order_notif = mysqli_num_rows($res_ei_order_notif);
 
-    .form-input i {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #888;
-    }
+$online_order_notif = "SELECT order_status from order_manager
+					WHERE order_status='Pending'OR order_status='Processing' ";
 
-    .login-btn {
-        background: #ff6600;
-        color: white;
-        font-weight: 700;
-        border: none;
-        padding: 12px;
-        width: 100%;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: 0.3s;
-    }
+$res_online_order_notif = mysqli_query($conn, $online_order_notif);
 
-    .login-btn:hover {
-        background: #e65c00;
-        box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
-    }
+$row_online_order_notif = mysqli_num_rows($res_online_order_notif);
 
-    .forgotPW {
-        display: block;
-        margin-top: 10px;
-        color: #555;
-        text-decoration: none;
-    }
+// Stock Notification
+$stock_notif = "SELECT stock FROM tbl_food
+				WHERE stock<50";
 
-    .forgotPW:hover {
-        color: #ff6600;
-    }
+$res_stock_notif = mysqli_query($conn, $stock_notif);
+$row_stock_notif = mysqli_num_rows($res_stock_notif);
 
-    .error-message {
-        color: red;
-        font-size: 14px;
-        margin-top: 5px;
-    }
-</style>
 
-<!-- FORMULAIRE DE CONNEXION -->
-<div class="login-container">
-    <span class="login-title">
-        <i class="fas fa-user-lock"></i> Connexion Admin
-    </span>
+// Revenue Generated
+$revenue = "SELECT SUM(total_amount) AS total_amount FROM order_manager
+			WHERE order_status='Delivered' ";
+$res_revenue = mysqli_query($conn, $revenue);
+$total_revenue = mysqli_fetch_array($res_revenue);
 
-    <form action="index.php" method="POST">
-        <!-- MESSAGE D'ERREUR PHP -->
-        <?php
-        if(isset($_POST['admin_login'])) {
-            $username = test_input($_POST['username']);
-            $password = test_input($_POST['password']);
-            $hashedPass = sha1($password);
+//Total Orders Delivered
 
-            $stmt = $con->prepare("SELECT user_id, username, password FROM users WHERE username = ? AND password = ?");
-            $stmt->execute(array($username, $hashedPass));
-            $row = $stmt->fetch();
-            $count = $stmt->rowCount();
+$orders_delivered = "SELECT order_status FROM order_manager
+					 WHERE order_status='Delivered'";
+$res_orders_delivered = mysqli_query($conn, $orders_delivered);
+$total_orders_delivered = mysqli_num_rows($res_orders_delivered);
 
-            if($count > 0) {
-                $_SESSION['username_restaurant_qRewacvAqzA'] = $username;
-                $_SESSION['password_restaurant_qRewacvAqzA'] = $password;
-                $_SESSION['userid_restaurant_qRewacvAqzA'] = $row['user_id'];
-                header('Location: dashboard.php');
-                die();
-            } else {
-                echo '<div class="error-message"><i class="fas fa-exclamation-circle"></i> Identifiant ou mot de passe incorrect !</div>';
-            }
-        }
+//Message Notification
+$message_notif = "SELECT message_status FROM message
+				 WHERE message_status = 'unread'";
+$res_message_notif = mysqli_query($conn, $message_notif);
+$row_message_notif = mysqli_num_rows($res_message_notif);
+
+
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<!-- Boxicons -->
+	<link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
+	<!-- My CSS -->
+	<link rel="stylesheet" href="style-admin.css">
+	<link rel="icon" 
+      type="image/png" 
+      href="../images/logo.png">
+
+	<!-- Chart ---> 
+		
+	
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load("current", {packages:["corechart"]});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+	
+        var data = google.visualization.arrayToDataTable([
+          ['Item Name', 'Sales'], 
+          <?php
+		  while($row_sales=mysqli_fetch_array($res_most_sold_items))
+		  {
+			  echo "['".$row_sales["item_name"]."', ".$row_sales["total_qty"]."],";
+		  }
+		  ?>
+          ]);
+		   
+        var options = {
+          title: 'Most Sold Items',
+          pieHole: 0.4,
+		  fontName: 'Poppins',
+		  fontSize: 12,
+		  //is3D:true,
+		  titleTextStyle: { color: "Grey",
+  							fontName: "Poppins",
+  							fontSize: 16,
+  							bold: false,
+  							italic: false },
+		
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('donutchart_msi'));
+        chart.draw(data, options);	
+      }
+	  
+    </script>
+
+	<!-- Chart End --> 
+
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Time' , 'Sales'],
+		   <?php
+		  while($row_sales_by_hour=mysqli_fetch_array($res_sales_by_hour))
+		  {
+			  echo "['".$row_sales_by_hour["hname"]."', ".$row_sales_by_hour["total_sales"]."],";
+		  }
+
+		  ?>
+		
+          
+        ]);
+
+        var options = 
+		{
+			hAxis: 
+			{
+				title: 'Time', titleTextStyle:
+				{
+					color: 'Black'
+				}
+			},
+      		colors: ['#eb2f06','green'],
+			
+            chart: 
+			{
+            title: 'Sales By Hour',
+           } 
+        };
+
+        var chart = new google.charts.Bar(document.getElementById('columnchart_material'));
+
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+    </script>
+	
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+	<title>GoodFood Admin</title>
+</head>
+<body>
+
+
+	<!-- SIDEBAR -->
+	<?php include('dashbord.php'); ?>
+
+	<!-- SIDEBAR -->
+	
+	 <!-- Dynamic Dashborad --> 
+
+            <?php
+            //Categories
+
+            $sql = "SELECT * FROM tbl_category";
+
+            $res = mysqli_query($conn, $sql);
+
+            $row_cat = mysqli_num_rows($res);
+            
+            //Items
+
+            $sql2 = "SELECT * FROM tbl_food";
+
+            $res2 = mysqli_query($conn, $sql2);
+
+            $row_item = mysqli_num_rows($res2);
+
+            //Orders
+
+            $sql3 = "SELECT * FROM order_manager";
+
+            $res3 = mysqli_query($conn, $sql3);
+
+            $row_order = mysqli_num_rows($res3);
+
+			//Eat In Orders
+
+
+	  		$sql4 = "SELECT * FROM tbl_eipay";
+
+            $res4 = mysqli_query($conn, $sql4);
+
+            $row_ei_order = mysqli_num_rows($res4);
+
         ?>
 
-        <!-- CHAMP UTILISATEUR -->
-        <div class="form-input">
-            <i class="fas fa-user"></i>
-            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+
+	<!-- Dynamic DashBoard --> 
+
+
+	<!-- CONTENT -->
+	<section id="content">
+	<!-- BARRE DE NAVIGATION -->
+	<nav>
+		<i class='bx bx-menu'></i>
+		<a href="#" class="nav-link"></a>
+		<form action="#">
+			<div class="form-input">
+				<input type="search" placeholder="Rechercher...">
+				<button type="submit" class="search-btn"><i class='bx bx-search'></i></button>
+			</div>
+		</form>
+		<input type="checkbox" id="switch-mode" hidden>
+		<label for="switch-mode" class="switch-mode"></label>
+		<div class="fetch_message">
+			<div class="action_message notfi_message">
+				<a href="messages.php"><i class='bx bxs-envelope'></i></a>
+				<?php 
+				if($row_message_notif>0)
+				{
+					?>
+					<span class="num"><?php echo $row_message_notif; ?></span>
+					<?php
+				}
+				else
+				{
+					?>
+					<span class=""></span>
+					<?php
+				}
+				?>
+			</div>
+		</div>
+		
+		<div class="notification" onclick="menuToggle();">
+			<div class="action notif" onclick="menuToggle();">
+				<i class='bx bxs-bell' onclick="menuToggle();"></i>
+				<div class="notif_menu">
+					<ul>
+						<?php 
+						if($row_stock_notif>0 and $row_stock_notif !=1)
+						{
+							?>
+							<li><a href="inventory.php"><?php echo $row_stock_notif ?>&nbsp;articles sont en rupture de stock</a></li>
+							<?php
+						}
+						else if($row_stock_notif == 1)
+						{
+							?>
+							<li><a href="inventory.php"><?php echo $row_stock_notif ?>&nbsp;article est en rupture de stock</a></li>
+							<?php
+						}
+						
+						if($row_ei_order_notif>0)
+						{
+							?>
+							<li><a href="manage-online-order.php"><?php echo $row_online_order_notif ?>&nbsp;Nouvelle commande en ligne</a></li>
+							<?php
+						}
+						
+						if($row_online_order_notif>0)
+						{
+							?>
+							<li><a href="manage-ei-order.php"><?php echo $row_ei_order_notif ?>&nbsp;Nouvelle commande sur place</a></li>
+							<?php
+						}
+						?>
+					</ul>
+				</div>
+				<?php 
+				if($row_stock_notif>0 || $row_online_order_notif>0 || $row_ei_order_notif>0)
+				{
+					$total_notif = $row_online_order_notif + $row_ei_order_notif + $row_stock_notif;
+					?>
+					<span class="num"><?php echo $total_notif; ?></span>
+					<?php
+				}
+				else
+				{
+					?>
+					<span class=""></span>
+					<?php
+				}
+				?>
+			</div>
+		</div>
+	</nav>
+	<!-- BARRE DE NAVIGATION -->
+<!-- CONTENU PRINCIPAL -->
+<?php
+
+
+// Vérification du rôle de l'utilisateur
+$role = $_SESSION['user-role'] ?? ''; // Évite une erreur si la session n'est pas définie
+?>
+
+<main>
+    <div class="cards-list">
+        <div class="card-stock">
+            <?php if ($role === 'Administrateur') { ?>
+                <a href="inventory.php">
+            <?php } ?>
+                <div class="card_image"><img src="../images/inventory.png" /></div>
+            <?php if ($role === 'Administrateur') { ?>
+                </a>
+            <?php } ?>
+            <div class="card_title title-white">
+                <p>Stock</p>
+            </div>
         </div>
 
-        <!-- CHAMP MOT DE PASSE -->
-        <div class="form-input">
-            <i class="fas fa-lock"></i>
-            <input type="password" name="password" placeholder="Mot de passe" required>
+        <div class="card-stock2">
+            <div class="card_image">
+                <?php if ($role === 'Administrateur') { ?><a href="#"><?php } ?>
+                    <img src="../images/revenue.png" />
+                <?php if ($role === 'Administrateur') { ?></a><?php } ?>
+            </div>
+            <div class="card_title title-white">
+                <p>€<?=$total_revenue['total_amount']?></p>
+                <p>Revenu généré</p>
+            </div>
         </div>
 
-        <!-- BOUTON DE CONNEXION -->
-        <button type="submit" name="admin_login" class="login-btn">Se Connecter</button>
+        <div class="card-stock3">
+            <div class="card_image">
+                <?php if ($role === 'Administrateur') { ?><a href="#"><?php } ?>
+                    <img src="../images/orders_completed.png" />
+                <?php if ($role === 'Administrateur') { ?></a><?php } ?>
+            </div>
+            <div class="card_title title-white">
+                <p><?php echo $total_orders_delivered; ?></p>
+                <p>Commandes terminées</p>
+            </div>
+        </div>
 
-        <!-- LIEN MOT DE PASSE OUBLIÉ -->
-        <a href="#" class="forgotPW">Mot de passe oublié ?</a>
-    </form>
-</div>
+        <div class="card-stock4">
+            <div class="card_image">
+                <?php if ($role === 'Administrateur') { ?><a href="#"><?php } ?>
+                    <img src="../images/folder2.png" />
+                <?php if ($role === 'Administrateur') { ?></a><?php } ?>
+            </div>
+            <div class="card_title title-white">
+                <p><?php echo $row_item; ?></p>
+                <p>Éléments du menu</p>
+            </div>
+        </div>
+    </div>
 
-<?php include 'Includes/templates/footer.php'; ?>
+    <!-- Graphiques -->
+    <br>
+    <ul class="box-info">
+        <li>
+            <canvas id="donutChart" style="width: 650px; height: 320px;"></canvas>
+        </li>
+        <li>
+            <canvas id="barChart" style="width: 650px; height: 320px;"></canvas>    
+        </li>
+    </ul>
+    <!-- Fin Graphiques -->
+</main>
+	
+
+	<!-- CONTENU PRINCIPAL -->
+</section>
+
+<!-- CONTENT -->
+<script src="script-admin.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctxDonut = document.getElementById('donutChart').getContext('2d');
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+
+        const donutChart = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: [<?php while($row_sales=mysqli_fetch_array($res_most_sold_items)) { echo "'".$row_sales["item_name"]."',"; } ?>],
+                datasets: [{
+                    label: 'Ventes',
+                    data: [<?php mysqli_data_seek($res_most_sold_items, 0); while($row_sales=mysqli_fetch_array($res_most_sold_items)) { echo $row_sales["total_qty"].","; } ?>],
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FF9800'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { animateScale: true },
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Produits les plus vendus' }
+                }
+            }
+        });
+
+        const barChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: [<?php while($row_sales_by_hour=mysqli_fetch_array($res_sales_by_hour)) { echo "'".$row_sales_by_hour["hname"]."',"; } ?>],
+                datasets: [{
+                    label: 'Ventes par heure',
+                    data: [<?php mysqli_data_seek($res_sales_by_hour, 0); while($row_sales_by_hour=mysqli_fetch_array($res_sales_by_hour)) { echo $row_sales_by_hour["total_sales"].","; } ?>],
+                    backgroundColor: '#FF9800'
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 2000, easing: 'easeInOutBounce' },
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Ventes par heure' }
+                }
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

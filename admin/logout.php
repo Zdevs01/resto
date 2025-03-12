@@ -1,13 +1,12 @@
-<?php
-	//Start Session
-	session_start();
+<?php 
+session_start(); // Assurer que la session est bien démarrée
+include('../config/constants.php');
 
-	//Unset variables of session
-	session_unset();
+// Détruire complètement la session
+session_unset(); // Supprime toutes les variables de session
+session_destroy(); // Détruit la session active
 
-	//Destroy Session
-	session_destroy();
-	
-	header('Location: index.php');
-	exit();
+// Rediriger vers la page de connexion
+header('location: '.SITEURL.'login.php');
+exit();
 ?>
