@@ -74,3 +74,21 @@ Les contributions sont les bienvenues ! Forke le projet, crée une branche et so
 📞 Support
 📧 Contact : 693481655
 
+
+
+pour la conexion
+
+admin -
+username - alone
+mot de passe - alone
+![1](https://github.com/user-attachments/assets/cc8135f2-e3b5-48ca-baab-ad250063e3e9)
+
+
+un client test
+
+username - alone
+mot de passe - durane 
+
+
+![2](https://github.com/user-attachments/assets/ea4a0467-8726-46f6-9ff5-73969e7d1f99)
+
