@@ -1,3 +1,10 @@
+
+
+![Capture](https://github.com/user-attachments/assets/7c40e468-33a9-442a-a046-eaff9adbf2f8)
+
+
+
+
 🍽️ GoodFood | Gestion de Restaurant
 GoodFood est un projet innovant de gestion de restaurant intégrant des fonctionnalités futuristes pour optimiser la gestion des commandes, des stocks et des paiements.
 
